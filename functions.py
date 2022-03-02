@@ -14,6 +14,9 @@ def forecast_pib():
     #### file is updated and everything gets re-forecasted.
     ####################################################################
 
+    print('00 - Checking last INEGI records')
+    print('...')
+
     #Import INEGI Last Values file
     lv= pd.read_csv('INEGI_LastValues.csv')
 
@@ -47,15 +50,13 @@ def forecast_pib():
 
     #Validation and updates
     if (y_check == True) & (q_check == True):
-        print('----')
-        print('Last YQ has not changed. Forecasting with last registered values')
+        print('... Last YQ has not changed. Forecasting with last registered values')
         
         pib_lastValue = [dat.iloc[-1, -3], dat.iloc[-1, -2]]
 
     elif (y_check == True) & (q_check == False):
-        print('----')
-        print('Year is same, but new Q data published. Forecasting with new quarter data')
-        print('Updating INEGI_LastValues.csv file')
+        print('...Year is same, but new Q data published. Forecasting with new quarter data')
+        print('Updating INEGI_LastValues.csv file!')
         
         lv= lv.append({'Var': 'PIB', 
                     'Y': dat.iloc[-1, -3], 
@@ -66,9 +67,8 @@ def forecast_pib():
         pib_lastValue = [dat.iloc[-1, -3], dat.iloc[-1, -2]]
             
     elif (y_check == False):
-        print('----')
-        print('New year, new data published. Forecasting with new quarter data')
-        print('Updating INEGI_LastValues.csv file')
+        print('...New year, new data published. Forecasting with new quarter data')
+        print('Updating INEGI_LastValues.csv file!')
         
         lv= lv.append({'Var': 'PIB', 
                     'Y': dat.iloc[-1, -3], 
@@ -85,6 +85,8 @@ def forecast_pib():
     #### Facebook Prophet model to forecast automatically GDP growth
     #### based on new historic recors , towards 2032
     ####################################################################
+
+    print('01 - forecasting INEGI records...')
 
     #Prepare data
     ts= dat[['yq', 'pib']].rename(columns= {'yq': 'ds',  'pib': 'y'})
@@ -136,6 +138,8 @@ def forecast_pib():
     #### expectations survey.
     ####################################################################
 
+    print('02 - Getting BANXICOs latest macro expectations survey data')
+
     #Proyección año en curso
     url= 'https://www.banxico.org.mx/SieAPIRest/service/v1/series/SR14448/datos/oportuno'
     response= requests.get(url, headers= {'Bmx-Token': token_banxico})
@@ -161,6 +165,8 @@ def forecast_pib():
     #### Ajustar valores de proyecciones PIB a expectativas del sector
     #### de Banxico
     ####################################################################
+
+    print('03 - Adjusting naive forecasts to BANXICOs data')
 
     ################
     ### AJUSTAR 2022
@@ -190,5 +196,7 @@ def forecast_pib():
         X = (yoy.loc[yoy.index== year, 'pct_var'] / 100 +1) * fnl.loc[fnl['year'] == year-1, 'full'].sum() / fnl.loc[fnl['year'] == year, 'full'].sum()
         X= X[X.index[0]]
         fnl.loc[fnl['year'] == year, 'full'] = fnl.loc[fnl['year'] == year, 'full'] * X
+
+    print('04 - Forecasts complete!')
 
     return fnl[['year', 'quarter', 'full']]
